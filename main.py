@@ -3,6 +3,8 @@ import soundfile
 from classes.spectral_analyzer import SpectralAnalizer
 from classes.image_analyzer import ImageAnalizer
 import numpy as np
+import torch
+import torchaudio
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -20,8 +22,8 @@ parser.add_argument(
 )
 parser.add_argument(
     "--hop_size",
-    default=128,
-    help="hop size to synthetized audio",
+    default=512,
+    help="hop size to synthetized audio. The higher, the longer",
     required=False,
     type=int
 )
@@ -32,6 +34,7 @@ parser.add_argument(
     required=False,
 )
 def main(conf):
+    torchaudio.set_audio_backend(backend='soundfile')
     image_path = conf['image_path']
     sample_rate = conf['sample_rate']
     hop_size = conf['hop_size']
@@ -44,9 +47,11 @@ def main(conf):
     
 
     spectral_a = SpectralAnalizer(n_bins, n_bins, hop_size, sample_rate)
-    spectral_a.plot_spectrogram(Grey)
+    # spectral_a.plot_spectrogram(Grey)
 
     # analyze the sources
+
+
     R = spectral_a.stftSynth(R, R)
     G = spectral_a.stftSynth(G, G)
     B = spectral_a.stftSynth(B, B)
@@ -55,15 +60,14 @@ def main(conf):
 
     # mix the sources (stereo)
     #x = np.array([Grey - R/4, Grey - B])
-    x = np.array([Grey, Grey])
-    max_value = np.max(np.abs(x))
+    x = Grey.to(torch.float32)
+    max_value = torch.max(torch.abs(x))
     x /= max_value
-
     #breakpoint()
     # save audio
     #import torchaudio
-    #torchaudio.save(out_name, x, sample_rate=sample_rate)
-    soundfile.write(out_name, x.T, samplerate=sample_rate, subtype='PCM_16')
+    torchaudio.save(out_name, x, sample_rate=sample_rate)
+    #soundfile.write(out_name, x.T, samplerate=sample_rate, subtype='PCM_16')
 
 
 if __name__ == "__main__":
