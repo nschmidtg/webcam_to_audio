@@ -22,8 +22,8 @@ parser.add_argument(
 )
 parser.add_argument(
     "--hop_size",
-    default=128,
-    help="hop size to synthetized audio",
+    default=512,
+    help="hop size to synthetized audio. The higher, the longer",
     required=False,
     type=int
 )
