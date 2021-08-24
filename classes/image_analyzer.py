@@ -40,8 +40,9 @@ class ImageAnalizer():
 
     def colors_to_db(self, channel, max_db):
         # 0..255 -> -60..0
-        channel = channel / max_db * 30 - 30
-
+        channel = channel / max_db
+        channel = channel ** 10
+        channel = channel * 200 - 200
         return channel
 
     def split_channels(self, image):
@@ -55,7 +56,7 @@ class ImageAnalizer():
         R = self.colors_to_db(R, max_db).T
         G = self.colors_to_db(G, max_db).T
         B = self.colors_to_db(B, max_db).T
-        Grey = self.colors_to_db(Grey, max_db).T
+        Grey = self.colors_to_db(Grey, max_db)
         
         
 
