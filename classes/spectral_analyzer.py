@@ -30,8 +30,9 @@ class SpectralAnalizer():
         plt.figure(1, figsize=(15, 10))
         plt.subplot(211)
         numFrames = int(xmX[:, 0].size)
+
         frmTime = self.hop_size * np.arange(numFrames) / self.sample_rate
-        binFreq = np.arange(self.stft_size + 1) * \
+        binFreq = np.arange(self.stft_size) * \
             float(self.sample_rate) / self.stft_size / 2
         plt.pcolormesh(frmTime, binFreq, np.transpose(xmX))
         plt.title(
@@ -42,4 +43,4 @@ class SpectralAnalizer():
         plt.ylabel('Frequency (Hz)')
         plt.xlabel('Time (s)')
         plt.tight_layout()
-        plt.show()
+        plt.savefig('spectrogram.png')

@@ -8,6 +8,7 @@ class ImageAnalizer():
         """
         return a rotated image to fit landscape format
         """
+        # return image
         width, height = image.size
         print(width, height)
         if height > width:
@@ -23,7 +24,7 @@ class ImageAnalizer():
         returns the frames and bins of a landscapifyed image as
         it were a spectrogram
         """
-        image = self.__landscapify__(image)
+        # image = self.__landscapify__(image)
         width, height = image.size
 
         # return the highest closest power of 2 + 1
@@ -53,6 +54,6 @@ class ImageAnalizer():
         R = self.colors_to_db(R, max_db).T
         G = self.colors_to_db(G, max_db).T
         B = self.colors_to_db(B, max_db).T
-        Grey = self.colors_to_db(Grey, max_db)
+        Grey = self.colors_to_db(Grey, max_db).T
 
         return (R, G, B, Grey)
