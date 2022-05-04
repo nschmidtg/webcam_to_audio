@@ -45,15 +45,16 @@ class ImageAnalizer():
 
     def split_channels(self, image):
         image = Image.Image.split(image)
+        # pdb.set_trace()
         R = np.array(image[0])
         G = np.array(image[1])
         B = np.array(image[2])
         Grey = 0.299 * R + 0.587 * G + 0.114 * B
 
         max_db = np.max([R, G, B, Grey])
-        R = self.colors_to_db(R, max_db).T
-        G = self.colors_to_db(G, max_db).T
-        B = self.colors_to_db(B, max_db).T
-        Grey = self.colors_to_db(Grey, max_db).T
+        R = self.colors_to_db(R, max_db)
+        G = self.colors_to_db(G, max_db)
+        B = self.colors_to_db(B, max_db)
+        Grey = self.colors_to_db(Grey, max_db)
 
         return (R, G, B, Grey)

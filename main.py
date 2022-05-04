@@ -44,7 +44,7 @@ def main(conf):
     im, n_frames, n_bins = image_a.get_frames_and_bins(im)
     R, G, B, Grey = image_a.split_channels(im)
 
-    spectral_a = SpectralAnalizer(n_bins, n_bins, hop_size, sample_rate)
+    spectral_a = SpectralAnalizer(n_frames, n_bins, hop_size, sample_rate)
     spectral_a.plot_spectrogram(Grey)
 
     # analyze the sources
