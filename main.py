@@ -6,6 +6,7 @@ import torchaudio
 from PIL import Image
 import pdb
 import numpy as np
+from midiutil import MIDIFile
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -54,16 +55,42 @@ def main_xilo(conf):
     # delta_vel = int(H/128)
 
     prob_matrix = np.zeros(notes * 128)
+    notes_matrix = [None] * (notes * 128)
     col_count = 0
     row_count = 0
 
     current = 0
     for col_count in range(0, notes):
         for row_count in range(0, 128):
+            notes_matrix[current] = "%s-%s" % (col_count, row_count)
             prob_matrix[current] = np.sum(Grey[col_count * delta_x :(col_count + 1) * delta_x, row_count * delta_y :(row_count + 1) * delta_y])
             current += 1
 
-    pdb.set_trace()
+    max_value = np.sum(prob_matrix)
+    norm_probs = prob_matrix / max_value
+
+    np.random.choice(notes_matrix, p=norm_probs)
+    time_dist = np.random.normal(loc=32, scale=15)
+
+    degrees  = [60, 64, 67, 69, 72] # MIDI note number
+    track    = 0
+    channel  = 0
+    time     = 0   # In beats
+    duration = 1   # In beats
+    tempo    = 60  # In BPM
+    volume   = 100 # 0-127, as per the MIDI standard
+
+    MyMIDI = MIDIFile(1) # One track, defaults to format 1 (tempo track
+                        # automatically created)
+    MyMIDI.addTempo(track,time, tempo)
+
+    for pitch in degrees:
+        MyMIDI.addNote(track, channel, pitch, time, duration, volume)
+        time = time + 1
+
+    with open("major-scale.mid", "wb") as output_file:
+        MyMIDI.writeFile(output_file)
+
 
 
 def main(conf):
