@@ -91,7 +91,6 @@ class Xilophone():
 
     def start(self):
         while(settings.keep_playing):
-            print(self.midi_channel, settings.x)
             note_vel = np.random.choice(self.notes_matrix, p=self.norm_probs)
             pitch, volume = note_vel.split('-')
             pitch = int(self.notes[int(pitch)])
