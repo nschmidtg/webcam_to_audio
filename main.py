@@ -34,18 +34,35 @@ def global_var():
 
 
 def main_xilo(conf):
-    xilo1 = Xilophone(1, arg_dic['image_path'], 'MAJOR', 60, 2)
+    # high pitch, poly, fast short notes
+    xilo1 = Xilophone(
+        0,
+        arg_dic['image_path'],
+        'MAJOR',
+        60,
+        2,
+        note_length=500,
+        separation=300
+    )
     xilo1_thread = threading.Thread(target=xilo1.start)
     xilo1_thread.start()
 
-    xilo2 = Xilophone(2, arg_dic['image_path'], 'MAJOR', 38, 2)
+    # long compressed mono bass notes
+    xilo2 = Xilophone(
+        1,
+        arg_dic['image_path'],
+        'MAJOR',
+        36,
+        1,
+        compressed=True,
+        note_length=2000
+    )
     xilo2_thread = threading.Thread(target=xilo2.start)
     xilo2_thread.start()
 
     # start video
     global_var()
-    xilo1_thread._stop()
-    xilo2_thread._stop()
+    settings.keep_playing = False
 
 
 if __name__ == "__main__":

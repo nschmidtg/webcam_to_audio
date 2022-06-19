@@ -13,9 +13,25 @@ MINOR = [0, 2, 3, 5, 7, 8, 11]
 
 
 class Xilophone():
-    def __init__(self, midi_channel, image_path, scale, root_note, n_scales):
+    def __init__(
+        self,
+        midi_channel,
+        image_path,
+        scale,
+        root_note,
+        n_scales,
+        note_length=2000,
+        separation=None,  # include it for polyphonic sounds
+        compressed=False
+    ):
         settings.init()
+        self.poly = None
+        if separation:
+            self.poly = True
+        self.compressed = compressed
+        self.note_length = note_length
         self.midi_channel = midi_channel
+        self.separation = separation
         selected_scale = eval(scale)
         self.notes = []
         for i in range(n_scales):
@@ -74,24 +90,29 @@ class Xilophone():
         self.outport.send(msg)
 
     def start(self):
-        while(True):
+        while(settings.keep_playing):
             print(self.midi_channel, settings.speed_corrector)
             note_vel = np.random.choice(self.notes_matrix, p=self.norm_probs)
             pitch, volume = note_vel.split('-')
             pitch = int(self.notes[int(pitch)])
             volume = int(volume)
+            if self.compressed:
+                volume = 127
             time_sampled = max(0, np.random.normal(
-                loc=int(2000),
-                scale=500
+                loc=int(self.note_length),
+                scale=int(self.note_length/4)
             ))
             play_note = threading.Thread(
                 target=self.send_note,
                 args=(pitch, time_sampled, volume)
             )
             play_note.start()
-            time_sampled = max(0, np.random.normal(
-                loc=int(250),
-                scale=250
-            ))
+            if self.poly:
+                time_sampled = max(0, np.random.normal(
+                    loc=int(self.separation),
+                    scale=int(self.separation/4)
+                ))
             time.sleep(time_sampled/1000)
             self.current_time += time_sampled
+        self.outport.panic()
+        self.outport.close()
