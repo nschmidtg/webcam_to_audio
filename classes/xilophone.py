@@ -91,7 +91,7 @@ class Xilophone():
 
     def start(self):
         while(settings.keep_playing):
-            print(self.midi_channel, settings.speed_corrector)
+            print(self.midi_channel, settings.x)
             note_vel = np.random.choice(self.notes_matrix, p=self.norm_probs)
             pitch, volume = note_vel.split('-')
             pitch = int(self.notes[int(pitch)])
@@ -99,8 +99,8 @@ class Xilophone():
             if self.compressed:
                 volume = 127
             time_sampled = max(0, np.random.normal(
-                loc=int(self.note_length),
-                scale=int(self.note_length/4)
+                loc=int(self.note_length * (settings.x/1090)),
+                scale=int(self.note_length/4 * (settings.x/1090))
             ))
             play_note = threading.Thread(
                 target=self.send_note,
@@ -109,8 +109,8 @@ class Xilophone():
             play_note.start()
             if self.poly:
                 time_sampled = max(0, np.random.normal(
-                    loc=int(self.separation),
-                    scale=int(self.separation/4)
+                    loc=int(self.separation * (settings.x/1090)),
+                    scale=int(self.separation/4 * (settings.x/1090))
                 ))
             time.sleep(time_sampled/1000)
             self.current_time += time_sampled
