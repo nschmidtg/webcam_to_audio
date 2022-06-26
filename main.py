@@ -1,60 +1,55 @@
 import argparse
-from classes.xilophone import Xilophone
+from classes.xilophone import XilophoneHandler
 import cv2
 import threading
 from classes import settings
-import sys
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "--image_path",
+    "--image-path",
     help="path to the image to be processed",
     required=True,
 )
+parser.add_argument(
+    "--video",
+    help="path to video file. If empty, camera's stream will be used"
+)
+parser.add_argument(
+    "--prototxt",
+    default="MobileNetSSD_deploy.prototxt",
+    help='Path to text network file: \
+        MobileNetSSD_deploy.prototxt for Caffe model or '
+)
+parser.add_argument(
+    "--weights",
+    default="MobileNetSSD_deploy.caffemodel",
+    help='Path to weights: \
+        MobileNetSSD_deploy.caffemodel for Caffe model or '
+    )
+parser.add_argument(
+    "--thr",
+    default=0.2,
+    type=float,
+    help="confidence threshold to filter out weak detections")
+parser.add_argument(
+    "--max-channels",
+    default=5,
+    help="max number of midi channles"
+)
 
 
-def global_var():
-    # cv2.namedWindow("preview")
-    # vc = cv2.VideoCapture(0)
-    # if vc.isOpened():  # try to get the first frame
-    #     rval, frame = vc.read()
-    # else:
-    #     rval = False
-    # while rval:
-    #     cv2.imshow("preview", frame)
-    #     rval, frame = vc.read()
-    #     settings.speed_corrector = np.average(frame)
-    #     key = cv2.waitKey(20)
-    #     if key == 27:  # exit on ESC
-    #         break
-    tracker_type = 'TrackerMIL_create'
+def video_tracker(midi_channels):
+    classNames = {15: 'person'}
 
-    tracker = cv2.TrackerMIL_create()
+    # Open video file or capture device.
+    if args.video:
+        video = cv2.VideoCapture(args.video)
+    else:
+        video = cv2.VideoCapture(0)
 
-    # Read video
-    # video = cv2.VideoCapture("input.mp4")
-    video = cv2.VideoCapture(0)  # for using CAM
-
-    # Exit if video not opened.
-    if not video.isOpened():
-        print("Could not open video")
-        sys.exit()
-
-    # Read first frame.
-    ok, frame = video.read()
-    if not ok:
-        print('Cannot read video file')
-        sys.exit()
-
-    # Define an initial bounding box
-    bbox = (287, 23, 86, 320)
-
-    # Uncomment the line below to select a different bounding box
-    bbox = cv2.selectROI(frame, False)
-
-    # Initialize tracker with first frame and bounding box
-    ok = tracker.init(frame, bbox)
+    # Load the Caffe model
+    net = cv2.dnn.readNetFromCaffe(args.prototxt, args.weights)
 
     while True:
         # Read a new frame
@@ -65,41 +60,117 @@ def global_var():
         # Start timer
         timer = cv2.getTickCount()
 
-        # Update tracker
-        ok, bbox = tracker.update(frame)
+        # resize frame for prediction
+        frame_resized = cv2.resize(frame, (300, 300))
 
+        # MobileNet requires fixed dimensions for input image(s)
+        # so we have to ensure that it is resized to 300x300 pixels.
+        # set a scale factor to image because network the objects
+        # has differents size.
+        # We perform a mean subtraction (127.5, 127.5, 127.5)
+        # to normalize the input;
+        # after executing this command our "blob" now has the shape:
+        # (1, 3, 300, 300)
+        blob = cv2.dnn.blobFromImage(
+            frame_resized,
+            0.007843,
+            (300, 300),
+            (127.5, 127.5, 127.5),
+            False
+        )
+        # Set to network the input blob
+        net.setInput(blob)
+        # Prediction of network
+        detections = net.forward()
+
+        # Size of frame resize (300x300)
+        cols = frame_resized.shape[1]
+        rows = frame_resized.shape[0]
         # Calculate Frames per second (FPS)
         fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer)
 
-        # Draw bounding box
-        if ok:
-            # Tracking success
-            p1 = (int(bbox[0]), int(bbox[1]))
-            p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
-            settings.x, settings.y = p1
-            cv2.rectangle(frame, p1, p2, (255, 0, 0), 2, 1)
-        else:
-            # Tracking failure
-            cv2.putText(
-                frame,
-                "Tracking failure detected",
-                (100, 80),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.75,
-                (0, 0, 255),
-                2)
+        # For get the class and location of object detected,
+        # There is a fix index for class, location and confidence
+        # value in @detections array .
 
-        # Display tracker type on frame
+        n_people = 0
+        for i in range(detections.shape[2]):
+            confidence = detections[0, 0, i, 2]  # C onfidence of prediction
+            if confidence > args.thr:  # Filter prediction
+                class_id = int(detections[0, 0, i, 1])  # Class label
+                # Draw label and confidence of prediction in frame resized
+                if class_id in classNames:
+
+                    # Object location
+                    xLeftBottom = int(detections[0, 0, i, 3] * cols)
+                    yLeftBottom = int(detections[0, 0, i, 4] * rows)
+                    xRightTop = int(detections[0, 0, i, 5] * cols)
+                    yRightTop = int(detections[0, 0, i, 6] * rows)
+
+                    # Factor for scale to original size of frame
+                    heightFactor = frame.shape[0]/300.0
+                    widthFactor = frame.shape[1]/300.0
+                    # Scale object detection to frame
+                    xLeftBottom = int(widthFactor * xLeftBottom)
+                    yLeftBottom = int(heightFactor * yLeftBottom)
+                    xRightTop = int(widthFactor * xRightTop)
+                    yRightTop = int(heightFactor * yRightTop)
+                    # Draw location of object
+                    cv2.rectangle(
+                        frame,
+                        (xLeftBottom, yLeftBottom),
+                        (xRightTop, yRightTop),
+                        (0, 255, 0)
+                    )
+
+                    label = classNames[class_id] + ": " + str(confidence)
+                    labelSize, baseLine = cv2.getTextSize(
+                        label,
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        1
+                    )
+
+                    yLeftBottom = max(yLeftBottom, labelSize[1])
+                    cv2.rectangle(
+                        frame,
+                        (xLeftBottom, yLeftBottom - labelSize[1]),
+                        (xLeftBottom + labelSize[0], yLeftBottom + baseLine),
+                        (255, 255, 255),
+                        cv2.FILLED
+                    )
+                    cv2.putText(
+                        frame,
+                        label,
+                        (xLeftBottom, yLeftBottom),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        (0, 0, 0)
+                    )
+                    cv2.putText(
+                        frame,
+                        "C",
+                        (int((xRightTop + xLeftBottom) / 2), int((yRightTop + yLeftBottom) / 2)),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        (0,0,255)
+                    )
+                    # print(label)  # print class and confidence
+                    settings.coords[n_people] = ((xRightTop + xLeftBottom) / 2), ((yRightTop + yLeftBottom) / 2)
+                    n_people += 1
+                    # len(frame) = 720
+                    # len(frame[0]) = 1280
+
+        # Set the number of people in the frame
+        settings.people_counter = n_people
         cv2.putText(
             frame,
-            tracker_type + " Tracker",
-            (100, 20),
+            "N of People : " + str(n_people),
+            (100, 80),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.75,
             (50, 170, 50),
-            2
-        )
-
+            2)
         # Display FPS on frame
         cv2.putText(
             frame,
@@ -109,49 +180,33 @@ def global_var():
             0.75,
             (50, 170, 50),
             2)
-        # Display result
-        cv2.imshow("Tracking", frame)
-
-        # Exit if ESC pressed
-        if cv2.waitKey(1) & 0xFF == ord('q'):  # if press q button bar
+        cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
+        cv2.imshow("frame", frame)
+        if cv2.waitKey(1) >= 0:  # Break with ESC
             break
     video.release()
     cv2.destroyWindow("preview")
 
 
-def main_xilo(conf):
+def main(conf):
     # high pitch, poly, fast short notes
-    xilo1 = Xilophone(
-        0,
-        arg_dic['image_path'],
-        'MAJOR',
-        60,
-        2,
-        note_length=500,
-        separation=300
-    )
-    xilo1_thread = threading.Thread(target=xilo1.start)
-    xilo1_thread.start()
-
-    # long compressed mono bass notes
-    xilo2 = Xilophone(
-        1,
-        arg_dic['image_path'],
-        'MAJOR',
-        36,
-        1,
-        compressed=True,
-        note_length=2000
-    )
-    xilo2_thread = threading.Thread(target=xilo2.start)
-    xilo2_thread.start()
-
-    # start video
-    global_var()
-    settings.keep_playing = False
+    try:
+        settings.init(conf["max_channels"])
+        xilo_handler = XilophoneHandler(
+            conf['image_path'],
+            int(conf["max_channels"]),
+            "PHRYGIAN"
+        )
+        xilo_handler_thread = threading.Thread(target=xilo_handler.xilo_lifecycle, daemon = True)
+        xilo_handler_thread.start()
+        # start video
+        video_tracker(conf["max_channels"])
+        settings.keep_playing = False
+    except(KeyboardInterrupt):
+        settings.keep_playing = False
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
     arg_dic = dict(vars(args))
-    main_xilo(arg_dic)
+    main(arg_dic)

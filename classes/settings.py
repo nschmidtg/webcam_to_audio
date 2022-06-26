@@ -1,9 +1,9 @@
-def init():
-    global speed_corrector
-    speed_corrector = 0
+def init(max_channels):
     global keep_playing
     keep_playing = True
-    global x
-    x = 2000
-    global y
-    y = 2000
+    global coords
+    coords = []
+    for i in range(int(max_channels)):
+        coords.append([1280, 720])
+    global people_counter
+    people_counter = 0
