@@ -18,7 +18,7 @@ MINOR = [0, 2, 3, 5, 7, 8, 10]
 LOCRIAN = [0, 1, 3, 5, 6, 8, 10]
 
 # dorian D
-ROOT = np.array([48, 36, 60, 72]) + 2
+ROOT = np.array([36, 48, 60, 72]) + 2
 SCALES = [3, 1, 2, 1]
 NOTE_LENGTH = [1000, 1500, 500, 1000]
 SEPARATION = [1000, None, 500, 1000]

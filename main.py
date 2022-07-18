@@ -47,6 +47,7 @@ def video_tracker(midi_channels):
         video = cv2.VideoCapture(args.video)
     else:
         video = cv2.VideoCapture(0)
+    video = cv2.VideoCapture('../../Downloads/My Name Is - D Billions Kids Songs.mp4')
 
     # Load the Caffe model
     net = cv2.dnn.readNetFromCaffe(args.prototxt, args.weights)
@@ -156,7 +157,9 @@ def video_tracker(midi_channels):
                         (0,0,255)
                     )
                     # print(label)  # print class and confidence
-                    settings.coords[n_people] = ((xRightTop + xLeftBottom) / 2), ((yRightTop + yLeftBottom) / 2)
+                    coord = min(midi_channels - 1, n_people)
+                    print(coord)
+                    settings.coords[max(coord, 0)] = ((xRightTop + xLeftBottom) / 2), ((yRightTop + yLeftBottom) / 2)
                     n_people += 1
                     # len(frame) = 720
                     # len(frame[0]) = 1280
@@ -191,7 +194,7 @@ def video_tracker(midi_channels):
 def main(conf):
     # high pitch, poly, fast short notes
     try:
-        settings.init(conf["max_channels"])
+        settings.init(int(conf["max_channels"]))
         xilo_handler = XilophoneHandler(
             conf['image_path'],
             int(conf["max_channels"]),
@@ -200,7 +203,7 @@ def main(conf):
         xilo_handler_thread = threading.Thread(target=xilo_handler.xilo_lifecycle, daemon = True)
         xilo_handler_thread.start()
         # start video
-        video_tracker(conf["max_channels"])
+        video_tracker(int(conf["max_channels"]))
         settings.keep_playing = False
     except(KeyboardInterrupt):
         settings.keep_playing = False
