@@ -1,3 +1,5 @@
-torchaudio==0.8.1
-soundfile==0.10.3
+torchaudio
+soundfile==0.10.3.post1
 matplotlib==3.5.1
+numpy
+MIDIUtil
