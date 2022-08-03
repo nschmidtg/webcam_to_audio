@@ -158,7 +158,6 @@ def video_tracker(midi_channels):
                     )
                     # print(label)  # print class and confidence
                     coord = min(midi_channels - 1, n_people)
-                    print(coord)
                     settings.coords[max(coord, 0)] = ((xRightTop + xLeftBottom) / 2), ((yRightTop + yLeftBottom) / 2)
                     n_people += 1
                     # len(frame) = 720
