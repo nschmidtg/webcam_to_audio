@@ -47,7 +47,7 @@ def video_tracker(midi_channels):
         video = cv2.VideoCapture(args.video)
     else:
         video = cv2.VideoCapture(0)
-    video = cv2.VideoCapture('../../Downloads/My Name Is - D Billions Kids Songs.mp4')
+    # video = cv2.VideoCapture('../../Downloads/My Name Is - D Billions Kids Songs.mp4')
 
     # Load the Caffe model
     net = cv2.dnn.readNetFromCaffe(args.prototxt, args.weights)
