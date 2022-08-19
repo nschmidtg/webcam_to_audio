@@ -27,22 +27,21 @@ COMPRESSED = [False, True, False, False]
 
 
 class XilophoneHandler():
-    def __init__(self, image_path, max_channels, scale):
+    def __init__(self, image_path, max_channels):
         self.image_path = image_path
-        self.scale = scale
         self.max_channels = max_channels
         # settings.init()
         self.xilo_threads = []
         for i in range(self.max_channels):
             xilo = Xilophone(
                 i,
-                self.image_path,
-                self.scale,
-                ROOT[i],
-                SCALES[i],
-                note_length=NOTE_LENGTH[i],
-                separation=SEPARATION[i],
-                compressed=COMPRESSED[i]
+                settings.params["IMAGE"],
+                settings.params[f"SCALE-{i}"],
+                int(settings.params[f"ROOT-{i}"]),
+                int(settings.params[f"OCTAVES-{i}"]),
+                note_length=int(settings.params[f"DURATION-{i}"]),
+                separation=int(settings.params[f"SEPARATION-{i}"]),
+                compressed=settings.compressed[i],
             )
             xilo.start()
             self.xilo_threads.append(xilo)
@@ -85,6 +84,16 @@ class Xilophone(threading.Thread):
         separation=None,  # include it for polyphonic sounds
         compressed=False
     ):
+        print(
+            midi_channel,
+            image_path,
+            scale,
+            root_note,
+            n_scales,
+            note_length,
+            separation,  # include it for polyphonic sounds
+            compressed
+        )
         threading.Thread.__init__(self)
         self.local_keep_playing = False
         self.poly = None
@@ -148,6 +157,8 @@ class Xilophone(threading.Thread):
         self.local_keep_playing = True
 
     def send_note(self, note, duration, vel):
+        print("heeeeyy!!!!]]]]]]]]]]")
+        print(note, duration, vel)
         msg = Message(
             'note_on',
             note=note,
