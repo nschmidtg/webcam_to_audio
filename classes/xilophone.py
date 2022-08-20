@@ -18,13 +18,6 @@ MIXOLYDIAN = [0, 2, 4, 5, 7, 9, 10]
 MINOR = [0, 2, 3, 5, 7, 8, 10]
 LOCRIAN = [0, 1, 3, 5, 6, 8, 10]
 
-# dorian D
-ROOT = np.array([36, 48, 60, 72]) + 2
-SCALES = [3, 5, 2, 1]
-NOTE_LENGTH = [1000, 1500, 500, 1000]
-SEPARATION = [1000, 1000, 500, 1000]
-COMPRESSED = [False, True, False, False]
-
 
 class XilophoneHandler():
     def __init__(self, image_path, max_channels):
@@ -43,6 +36,7 @@ class XilophoneHandler():
                 note_length=int(settings.params[f"DURATION-{i}"]),
                 separation=int(settings.params[f"SEPARATION-{i}"]),
                 compressed=settings.compressed[i],
+                x_axis_direction=settings.params[f"DIRECTION-{i}"]
             )
             xilo.start()
             self.xilo_threads.append(xilo)
@@ -84,18 +78,9 @@ class Xilophone(threading.Thread):
         n_scales,
         note_length=2000,
         separation=None,  # include it for polyphonic sounds
-        compressed=False
+        compressed=False,
+        x_axis_direction='left to right'
     ):
-        print(
-            midi_channel,
-            image_path,
-            scale,
-            root_note,
-            n_scales,
-            note_length,
-            separation,  # include it for polyphonic sounds
-            compressed
-        )
         threading.Thread.__init__(self)
         self.index = index
         self.local_keep_playing = False
@@ -107,6 +92,7 @@ class Xilophone(threading.Thread):
         self.midi_channel = midi_channel
         self.separation = separation
         selected_scale = eval(scale)
+        self.x_axis_direction = x_axis_direction
         self.notes = []
         for i in range(n_scales):
             for note in selected_scale:
@@ -156,7 +142,8 @@ class Xilophone(threading.Thread):
             speed=5,
             channel=int(settings.params[f"CHANNEL-{self.index}"]) - 1,
             control=int(settings.params[f"CC-{self.index}"]),
-            inst_num=self.index)
+            inst_num=self.index,
+            direction=self.x_axis_direction)
 
     def stop_thread(self):
         # print("shutting down")
