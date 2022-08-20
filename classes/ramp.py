@@ -37,23 +37,22 @@ class Ramp(threading.Thread):
     def run(self):
         while(settings.keep_playing):
             if self.local_keep_playing:
-                # if self.count - self.step <= self.low:
-                #     self.up = True
-                # elif self.count + self.step >= self.high:
-                #     self.up = False
-                # if self.up:
-                #     self.count += self.step
-                # else:
-                #     self.count -= self.step
-
                 if self.coord in 'x':
-                    tmp_value=int(float(settings.coords[self.inst_num][0] / 1280) * 127)
+                    tmp_value = int(
+                        float(settings.coords[self.inst_num][0] / 1280) * 127
+                    )
                 else:
-                    tmp_value=int(float(settings.coords[self.inst_num][1] / 720) * 127)
+                    tmp_value = int(
+                        float(settings.coords[self.inst_num][1] / 720) * 127
+                    )
 
                 temp_step = float((tmp_value - self.old_val)/self.speed)
                 for i in range(self.speed):
                     self.curr_val = int(self.curr_val + temp_step)
+                    if self.curr_val >= self.high:
+                        self.curr_val = self.high
+                    elif self.curr_val <= self.low:
+                        self.curr_val = self.low
                     print(self.curr_val)
                     msg = Message(
                         'control_change',

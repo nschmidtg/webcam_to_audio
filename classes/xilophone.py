@@ -35,6 +35,7 @@ class XilophoneHandler():
         for i in range(self.max_channels):
             xilo = Xilophone(
                 i,
+                int(settings.params[f"CHANNEL-{i}"]) - 1,
                 settings.params["IMAGE"],
                 settings.params[f"SCALE-{i}"],
                 int(settings.params[f"ROOT-{i}"]),
@@ -53,7 +54,7 @@ class XilophoneHandler():
             print("initial_n_people", initial_n_people)
 
             # we only change the current n of xilos if the n of people changed
-            # for more than X secs
+            # for more than 1 secs
             time.sleep(1)
             # print("current_n_people", current_n_people)
             # print("settings.people_counter", settings.people_counter)
@@ -75,6 +76,7 @@ class XilophoneHandler():
 class Xilophone(threading.Thread):
     def __init__(
         self,
+        index,
         midi_channel,
         image_path,
         scale,
@@ -95,6 +97,7 @@ class Xilophone(threading.Thread):
             compressed
         )
         threading.Thread.__init__(self)
+        self.index = index
         self.local_keep_playing = False
         self.poly = None
         if separation:
@@ -144,9 +147,16 @@ class Xilophone(threading.Thread):
         self.outport = mido.open_output()
 
         # initialize midi CCs
-        self.x_ramp = Ramp('x', low=0, high=127, start=0, step=1, speed=5, channel=0, control=21+(2*self.midi_channel), inst_num=self.midi_channel)
-        self.y_ramp = Ramp('y', low=0, high=127, start=127, step=1, speed=5, channel=0, control=22+(2*self.midi_channel), inst_num=self.midi_channel)
-        
+        self.x_ramp = Ramp(
+            'x',
+            low=int(settings.params[f"MIN-{self.index}"]),
+            high=int(settings.params[f"MAX-{self.index}"]),
+            start=0,
+            step=1,
+            speed=5,
+            channel=int(settings.params[f"CHANNEL-{self.index}"]) - 1,
+            control=int(settings.params[f"CC-{self.index}"]),
+            inst_num=self.index)
 
     def stop_thread(self):
         # print("shutting down")
@@ -178,9 +188,7 @@ class Xilophone(threading.Thread):
         play_note = None
         # read centroid
         self.x_ramp.start()
-        self.y_ramp.start()
         while(settings.keep_playing):
-            
             # (settings.coords[self.midi_channel][0]/1280)
             # (settings.coords[self.midi_channel][0]/1280)
             print("coords:", settings.coords[self.midi_channel])

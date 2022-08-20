@@ -175,7 +175,7 @@ for index in range(0, 4):
         sg.Text("Channel"),
         sg.Combo(
             key=f"CHANNEL-{index}",
-            values=[i for i in range(1, 128)],
+            values=[i for i in range(1, 17)],
             readonly=True,
             default_value=index + 1),
         sg.Text("Scale"),
@@ -327,7 +327,7 @@ while True:
             settings.init(values, graphic_off)
             xilo_handler = XilophoneHandler(
                 values["IMAGE"],
-                4,
+                2,
             )
             xilo_handler_thread = threading.Thread(
                 target=xilo_handler.xilo_lifecycle, daemon=True
