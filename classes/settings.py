@@ -1,6 +1,6 @@
 def init(init_params, graphic_off):
-    global compressed
-    compressed = graphic_off
+    global uncompressed
+    uncompressed = graphic_off
     global keep_playing
     keep_playing = True
     global coords

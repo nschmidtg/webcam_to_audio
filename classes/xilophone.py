@@ -23,6 +23,7 @@ class XilophoneHandler():
     def __init__(self, image_path, max_channels):
         self.image_path = image_path
         self.max_channels = max_channels
+        self.outport = mido.open_output()
         # settings.init()
         self.xilo_threads = []
         for i in range(self.max_channels):
@@ -33,9 +34,10 @@ class XilophoneHandler():
                 settings.params[f"SCALE-{i}"],
                 int(settings.params[f"ROOT-{i}"]),
                 int(settings.params[f"OCTAVES-{i}"]),
+                self.outport,
                 note_length=int(settings.params[f"DURATION-{i}"]),
                 separation=int(settings.params[f"SEPARATION-{i}"]),
-                compressed=settings.compressed[i],
+                uncompressed=settings.uncompressed[i],
                 x_axis_direction=settings.params[f"DIRECTION-{i}"]
             )
             xilo.start()
@@ -64,7 +66,12 @@ class XilophoneHandler():
                     for i in range(min(self.max_channels, final_n_people)):
                         self.xilo_threads[i].resume_thread()
                     current_n_people = final_n_people
-                    # print("**************")
+        print("**************")
+        for xilo in self.xilo_threads:
+            xilo.stop_thread()
+            xilo.join()
+        self.outport.panic()
+        self.outport.close()
 
 
 class Xilophone(threading.Thread):
@@ -76,9 +83,10 @@ class Xilophone(threading.Thread):
         scale,
         root_note,
         n_scales,
+        outport,
         note_length=2000,
         separation=None,  # include it for polyphonic sounds
-        compressed=False,
+        uncompressed=False,
         x_axis_direction='left to right'
     ):
         threading.Thread.__init__(self)
@@ -87,7 +95,7 @@ class Xilophone(threading.Thread):
         self.poly = None
         if separation:
             self.poly = True
-        self.compressed = compressed
+        self.uncompressed = uncompressed
         self.note_length = note_length
         self.midi_channel = midi_channel
         self.separation = separation
@@ -130,7 +138,7 @@ class Xilophone(threading.Thread):
 
         max_value = np.sum(prob_matrix)
         self.norm_probs = prob_matrix / max_value
-        self.outport = mido.open_output()
+        self.outport = outport
 
         # initialize midi CCs
         self.x_ramp = Ramp(
@@ -146,7 +154,6 @@ class Xilophone(threading.Thread):
             direction=self.x_axis_direction)
 
     def stop_thread(self):
-        # print("shutting down")
         self.local_keep_playing = False
 
     def resume_thread(self):
@@ -154,8 +161,6 @@ class Xilophone(threading.Thread):
         self.local_keep_playing = True
 
     def send_note(self, note, duration, vel):
-        print("heeeeyy!!!!]]]]]]]]]]")
-        print(note, duration, vel)
         msg = Message(
             'note_on',
             note=note,
@@ -176,11 +181,6 @@ class Xilophone(threading.Thread):
         # read centroid
         self.x_ramp.start()
         while(settings.keep_playing):
-            # (settings.coords[self.midi_channel][0]/1280)
-            # (settings.coords[self.midi_channel][0]/1280)
-            print("coords:", settings.coords[self.midi_channel])
-            print("¡¡¡¡¡")
-
             if self.local_keep_playing:
                 note_vel = np.random.choice(
                     self.notes_matrix,
@@ -189,7 +189,7 @@ class Xilophone(threading.Thread):
                 pitch, volume = note_vel.split('-')
                 pitch = int(self.notes[int(pitch)])
                 volume = int(volume)
-                if self.compressed:
+                if not self.uncompressed:
                     volume = 127
                 time_sampled = max(0, np.random.normal(
                     loc=int(self.note_length),
@@ -216,5 +216,6 @@ class Xilophone(threading.Thread):
                     )
                     self.outport.send(msg)
                 time.sleep(0.5)
-        self.outport.panic()
-        self.outport.close()
+        if play_note:
+            play_note.join()
+        self.x_ramp.join()
