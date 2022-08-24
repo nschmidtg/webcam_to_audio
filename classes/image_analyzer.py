@@ -10,7 +10,6 @@ class ImageAnalizer():
         """
         # return image
         width, height = image.size
-        print(width, height)
         if height > width:
             image = image.rotate(90, expand=True)
         image = ImageOps.flip(image)

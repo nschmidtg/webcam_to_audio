@@ -87,9 +87,7 @@ class Ramp(threading.Thread):
         self.port.close()
 
     def stop_thread(self):
-        # print("shutting down ramp")
         self.local_keep_playing = False
 
     def resume_thread(self):
-        # print("starting up ramp")
         self.local_keep_playing = True

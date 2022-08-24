@@ -47,26 +47,20 @@ class XilophoneHandler():
         current_n_people = 0
         while(settings.keep_playing):
             initial_n_people = settings.people_counter
-            print("initial_n_people", initial_n_people)
 
             # we only change the current n of xilos if the n of people changed
             # for more than 1 secs
             time.sleep(1)
-            # print("current_n_people", current_n_people)
-            # print("settings.people_counter", settings.people_counter)
             final_n_people = settings.people_counter
-            # print("final_n_people", final_n_people)
 
             if initial_n_people == final_n_people:
                 if final_n_people != current_n_people:
-                    # print("xilo_threads:", len(self.xilo_threads))
                     # silence all xilos
                     for xilo in self.xilo_threads:
                         xilo.stop_thread()
                     for i in range(min(self.max_channels, final_n_people)):
                         self.xilo_threads[i].resume_thread()
                     current_n_people = final_n_people
-        print("**************")
         for xilo in self.xilo_threads:
             xilo.stop_thread()
             xilo.join()
@@ -157,7 +151,6 @@ class Xilophone(threading.Thread):
         self.local_keep_playing = False
 
     def resume_thread(self):
-        # print("starting up")
         self.local_keep_playing = True
 
     def send_note(self, note, duration, vel):
