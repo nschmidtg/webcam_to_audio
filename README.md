@@ -1,20 +1,14 @@
-# Image to audio
-Python package to convert image to audio. The system interpretates the images as raw spectrograms and synthetize the audio using customizable iFFT parameters.
+# Image to Midi
+Python package to convert image to Midi.
 
 ## Install
 ```
+conda create --name image_to_midi python=3.7 pyinstaller=5.1
+conda activate image_to_midi
 pip install -r requirements.txt
 ```
-
-## Process an image
+## Compile UI
+### MacOS:
 ```
-python main.py --image_path=<PATH_TO_THE_IMAGE> --hop_size=512 --out_name=<NAME_OF_OUTPUT_AUDIO>.wav --sample_rate=16000
+pyinstaller image_to_midi.py --onefile --noconfirm --windowed --hidden-import=mido,cv2.cv2 --paths=classes --add-data="model/MobileNetSSD_deploy.prototxt:model" --add-data="model/MobileNetSSD_deploy.caffemodel:model"
 ```
-
-- The higher the sample rate, the higher the content of high frequencies, but the length of the output audio gets shorter
-- The higher the hop_size, the higher the resolution and longer the length of the audio file (it slows down the playback). Very slow hop_size will lead into harmonic artifacts (could or could not be wanted...). 
-
-I recomend using images with large resolution (~4000px x 3000px), a hop size of 512 and a sample_rate of 16000 to obtain ~1.5 min of audio.
-
-## Test
-TODO

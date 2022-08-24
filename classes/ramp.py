@@ -4,6 +4,12 @@ from . import settings
 import mido
 from mido import Message
 
+DIRECTIONS = {
+    "left to right": 0,
+    "right to left": 1,
+    "out to center": 2,
+}
+
 
 class Ramp(threading.Thread):
     def __init__(
@@ -17,6 +23,7 @@ class Ramp(threading.Thread):
         channel=0,
         control=21,
         inst_num=0,
+        direction='left to right'
     ):
         threading.Thread.__init__(self)
         self.coord = coord
@@ -33,27 +40,50 @@ class Ramp(threading.Thread):
         self.local_keep_playing = True
         self.curr_val = 0
         self.old_val = 0
+        self.direction = direction
 
     def run(self):
         while(settings.keep_playing):
             if self.local_keep_playing:
-                # if self.count - self.step <= self.low:
-                #     self.up = True
-                # elif self.count + self.step >= self.high:
-                #     self.up = False
-                # if self.up:
-                #     self.count += self.step
-                # else:
-                #     self.count -= self.step
-
+                tmp_value = 0
                 if self.coord in 'x':
-                    tmp_value=int(float(settings.coords[self.inst_num][0] / 1280) * 127)
-                else:
-                    tmp_value=int(float(settings.coords[self.inst_num][1] / 720) * 127)
+                    if self.direction == "left to right":
+                        tmp_value = int(
+                            float(
+                                settings.coords[self.inst_num][0] / 1280
+                            ) * 127
+                        )
+                    elif self.direction == "right to left":
+                        tmp_value = 127 - int(
+                            float(
+                                settings.coords[self.inst_num][0] / 1280
+                            ) * 127
+                        )
+                    elif self.direction == "out to center":
+                        if settings.coords[self.inst_num][0] <= (1280/2):
+                            tmp_value = int(
+                                float(
+                                    settings.coords[
+                                        self.inst_num
+                                    ][0] / (1280/2)
+                                ) * 127
+                            )
+                        else:
+                            tmp_value = 127 - int(
+                                float(
+                                    (settings.coords[
+                                        self.inst_num
+                                    ][0] - (1280/2)) / (1280/2)
+                                ) * 127
+                            )
 
                 temp_step = float((tmp_value - self.old_val)/self.speed)
                 for i in range(self.speed):
                     self.curr_val = int(self.curr_val + temp_step)
+                    if self.curr_val >= self.high:
+                        self.curr_val = self.high
+                    elif self.curr_val <= self.low:
+                        self.curr_val = self.low
                     print(self.curr_val)
                     msg = Message(
                         'control_change',
@@ -69,9 +99,7 @@ class Ramp(threading.Thread):
         self.port.close()
 
     def stop_thread(self):
-        # print("shutting down ramp")
         self.local_keep_playing = False
 
     def resume_thread(self):
-        # print("starting up ramp")
         self.local_keep_playing = True

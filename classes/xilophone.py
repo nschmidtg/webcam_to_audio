@@ -18,31 +18,27 @@ MIXOLYDIAN = [0, 2, 4, 5, 7, 9, 10]
 MINOR = [0, 2, 3, 5, 7, 8, 10]
 LOCRIAN = [0, 1, 3, 5, 6, 8, 10]
 
-# dorian D
-ROOT = np.array([36, 48, 60, 72]) + 2
-SCALES = [3, 5, 2, 1]
-NOTE_LENGTH = [1000, 1500, 500, 1000]
-SEPARATION = [1000, 1000, 500, 1000]
-COMPRESSED = [False, True, False, False]
-
 
 class XilophoneHandler():
-    def __init__(self, image_path, max_channels, scale):
+    def __init__(self, image_path, max_channels):
         self.image_path = image_path
-        self.scale = scale
         self.max_channels = max_channels
+        self.outport = mido.open_output()
         # settings.init()
         self.xilo_threads = []
         for i in range(self.max_channels):
             xilo = Xilophone(
                 i,
-                self.image_path,
-                self.scale,
-                ROOT[i],
-                SCALES[i],
-                note_length=NOTE_LENGTH[i],
-                separation=SEPARATION[i],
-                compressed=COMPRESSED[i]
+                int(settings.params[f"CHANNEL-{i}"]) - 1,
+                settings.params["IMAGE"],
+                settings.params[f"SCALE-{i}"],
+                int(settings.params[f"ROOT-{i}"]),
+                int(settings.params[f"OCTAVES-{i}"]),
+                self.outport,
+                note_length=int(settings.params[f"DURATION-{i}"]),
+                separation=int(settings.params[f"SEPARATION-{i}"]),
+                uncompressed=settings.uncompressed[i],
+                x_axis_direction=settings.params[f"DIRECTION-{i}"]
             )
             xilo.start()
             self.xilo_threads.append(xilo)
@@ -51,50 +47,54 @@ class XilophoneHandler():
         current_n_people = 0
         while(settings.keep_playing):
             initial_n_people = settings.people_counter
-            print("initial_n_people", initial_n_people)
 
             # we only change the current n of xilos if the n of people changed
-            # for more than X secs
+            # for more than 1 secs
             time.sleep(1)
-            # print("current_n_people", current_n_people)
-            # print("settings.people_counter", settings.people_counter)
             final_n_people = settings.people_counter
-            # print("final_n_people", final_n_people)
 
             if initial_n_people == final_n_people:
                 if final_n_people != current_n_people:
-                    # print("xilo_threads:", len(self.xilo_threads))
                     # silence all xilos
                     for xilo in self.xilo_threads:
                         xilo.stop_thread()
                     for i in range(min(self.max_channels, final_n_people)):
                         self.xilo_threads[i].resume_thread()
                     current_n_people = final_n_people
-                    # print("**************")
+        for xilo in self.xilo_threads:
+            xilo.stop_thread()
+            xilo.join()
+        self.outport.panic()
+        self.outport.close()
 
 
 class Xilophone(threading.Thread):
     def __init__(
         self,
+        index,
         midi_channel,
         image_path,
         scale,
         root_note,
         n_scales,
+        outport,
         note_length=2000,
         separation=None,  # include it for polyphonic sounds
-        compressed=False
+        uncompressed=False,
+        x_axis_direction='left to right'
     ):
         threading.Thread.__init__(self)
+        self.index = index
         self.local_keep_playing = False
         self.poly = None
         if separation:
             self.poly = True
-        self.compressed = compressed
+        self.uncompressed = uncompressed
         self.note_length = note_length
         self.midi_channel = midi_channel
         self.separation = separation
         selected_scale = eval(scale)
+        self.x_axis_direction = x_axis_direction
         self.notes = []
         for i in range(n_scales):
             for note in selected_scale:
@@ -132,19 +132,25 @@ class Xilophone(threading.Thread):
 
         max_value = np.sum(prob_matrix)
         self.norm_probs = prob_matrix / max_value
-        self.outport = mido.open_output()
+        self.outport = outport
 
         # initialize midi CCs
-        self.x_ramp = Ramp('x', low=0, high=127, start=0, step=1, speed=5, channel=0, control=21+(2*self.midi_channel), inst_num=self.midi_channel)
-        self.y_ramp = Ramp('y', low=0, high=127, start=127, step=1, speed=5, channel=0, control=22+(2*self.midi_channel), inst_num=self.midi_channel)
-        
+        self.x_ramp = Ramp(
+            'x',
+            low=int(settings.params[f"MIN-{self.index}"]),
+            high=int(settings.params[f"MAX-{self.index}"]),
+            start=0,
+            step=1,
+            speed=5,
+            channel=int(settings.params[f"CHANNEL-{self.index}"]) - 1,
+            control=int(settings.params[f"CC-{self.index}"]),
+            inst_num=self.index,
+            direction=self.x_axis_direction)
 
     def stop_thread(self):
-        # print("shutting down")
         self.local_keep_playing = False
 
     def resume_thread(self):
-        # print("starting up")
         self.local_keep_playing = True
 
     def send_note(self, note, duration, vel):
@@ -167,14 +173,7 @@ class Xilophone(threading.Thread):
         play_note = None
         # read centroid
         self.x_ramp.start()
-        self.y_ramp.start()
         while(settings.keep_playing):
-            
-            # (settings.coords[self.midi_channel][0]/1280)
-            # (settings.coords[self.midi_channel][0]/1280)
-            print("coords:", settings.coords[self.midi_channel])
-            print("¡¡¡¡¡")
-
             if self.local_keep_playing:
                 note_vel = np.random.choice(
                     self.notes_matrix,
@@ -183,7 +182,7 @@ class Xilophone(threading.Thread):
                 pitch, volume = note_vel.split('-')
                 pitch = int(self.notes[int(pitch)])
                 volume = int(volume)
-                if self.compressed:
+                if not self.uncompressed:
                     volume = 127
                 time_sampled = max(0, np.random.normal(
                     loc=int(self.note_length),
@@ -210,5 +209,6 @@ class Xilophone(threading.Thread):
                     )
                     self.outport.send(msg)
                 time.sleep(0.5)
-        self.outport.panic()
-        self.outport.close()
+        if play_note:
+            play_note.join()
+        self.x_ramp.join()
