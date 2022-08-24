@@ -49,20 +49,32 @@ class Ramp(threading.Thread):
                 if self.coord in 'x':
                     if self.direction == "left to right":
                         tmp_value = int(
-                            float(settings.coords[self.inst_num][0] / 1280) * 127
+                            float(
+                                settings.coords[self.inst_num][0] / 1280
+                            ) * 127
                         )
                     elif self.direction == "right to left":
                         tmp_value = 127 - int(
-                            float(settings.coords[self.inst_num][0] / 1280) * 127
+                            float(
+                                settings.coords[self.inst_num][0] / 1280
+                            ) * 127
                         )
                     elif self.direction == "out to center":
                         if settings.coords[self.inst_num][0] <= (1280/2):
                             tmp_value = int(
-                                float(settings.coords[self.inst_num][0] / (1280/2)) * 127
+                                float(
+                                    settings.coords[
+                                        self.inst_num
+                                    ][0] / (1280/2)
+                                ) * 127
                             )
                         else:
                             tmp_value = 127 - int(
-                                float((settings.coords[self.inst_num][0] - (1280/2)) / (1280/2)) * 127
+                                float(
+                                    (settings.coords[
+                                        self.inst_num
+                                    ][0] - (1280/2)) / (1280/2)
+                                ) * 127
                             )
 
                 temp_step = float((tmp_value - self.old_val)/self.speed)
