@@ -2,3 +2,7 @@ imag*
 audio*
 DSC*
 classes/__pycache__/*
+hello.spec
+dist/
+build/
+Lluvia1 Project/
