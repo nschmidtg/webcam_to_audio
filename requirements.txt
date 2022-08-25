@@ -1,7 +1,8 @@
-torchaudio
-soundfile==0.10.3.post1
-matplotlib==3.5.1
 numpy
+mido
 MIDIUtil
 pysimplegui
 opencv-python==4.5.3.56
+python-rtmidi
+Pillow
+# rtmidi... for macos compiling UI?
