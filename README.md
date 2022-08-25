@@ -4,7 +4,7 @@ Separation controls the sampling frequency from a Normaldistribution from the le
 
 TODO
 
-![SCREENSHOT](screenshot.png)
+![SCREENSHOT](images/screenshot.png)
 
 ## Install
 Tested on Python 3.7
@@ -16,10 +16,10 @@ python image_to_midi.py
 To it with your DAW:
 - Create a virtual MIDI channel:
   - for MacOS: Create new MIDI Bus Channel using the MIDI Studio: cmnd + space - type Audio MIDI Setup - Click on Window - Show MIDI Studio
-![Midi Studio config](midi-studio.png)
+![Midi Studio config](images/midi-studio.png)
   - For Windows download [LoopMIDI](https://www.tobias-erichsen.de/software/loopmidi.html) install it and create a new MIDI Channel
 - In your DAW select the BUS with Track and Remote options activated
-![Ableton](ableton-config.jpeg)
+![Ableton](images/ableton-config.jpeg)
 
 ## Compile UI
 
