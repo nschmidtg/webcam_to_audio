@@ -1,8 +1,5 @@
-imag*
-audio*
-DSC*
 classes/__pycache__/*
-hello.spec
+image_to_midi.spec
 dist/
 build/
 Lluvia1 Project/
