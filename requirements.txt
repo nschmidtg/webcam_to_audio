@@ -5,4 +5,5 @@ pysimplegui
 opencv-python==4.5.3.56
 python-rtmidi
 Pillow
+pyinstaller==5.1
 # rtmidi... for macos compiling UI?

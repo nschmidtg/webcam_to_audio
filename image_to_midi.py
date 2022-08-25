@@ -198,18 +198,8 @@ def video_tracker(midi_channels):
 
 
 xilos = []
-
-xilos.append([sg.Text(
-        "Select Midi Output Port",
-    ),
-    sg.Combo(
-    key="OUTPUT",
-    values=list(set(mido.get_output_names())),
-    readonly=True,
-    enable_events=True
-)])
 for index in range(0, 4):
-    aux = [
+    aux1 = [
         sg.Text("Channel"),
         sg.Combo(
             key=f"CHANNEL-{index}",
@@ -241,7 +231,9 @@ for index in range(0, 4):
             values=[i for i in range(0, 11)],
             readonly=True,
             default_value=4
-        ),
+        )
+    ]
+    aux2 = [
         sg.Text("Duration"),
         sg.Slider(
             orientation="horizontal",
@@ -265,7 +257,9 @@ for index in range(0, 4):
                 sg.theme_background_color(),
                 sg.theme_background_color()),
             border_width=0
-        ),
+        )
+    ]
+    aux3 = [
         sg.Text('CC'),
         sg.Combo(
             key=f"CC-{index}",
@@ -300,31 +294,62 @@ for index in range(0, 4):
         ),
         sg.Button("Map", key=f"TRAIN-{index}"),
         sg.Text("", key=f"COUNTDOWN-{index}")
-    ]
-    xilos.append(aux)
-xilos.append([sg.Slider(
-                orientation="horizontal",
-                key="THRESHOLD",
-                range=(1, 100),
-                default_value=20
-            )])
-xilos.append([sg.FileBrowse(
-    "Browse Image",
-    key="IMAGE",
-    file_types=file_types),
-    sg.Text("", key="IMAGE-PATH")])
-
-xilos.append([sg.Button("Start", key="START")])
-
+    ] 
+    prueba = sg.Frame(f"Instrument {index + 1}", [aux1, aux2, aux3])
+    xilos.append([prueba])
 
 # ----- Full layout -----
 layout = [
     [
-        sg.Column(xilos),
+        sg.Frame(
+            "Settings",
+            [[
+                sg.Column(
+                    [
+                        [
+                            sg.Text(
+                                "Midi Output Port",
+                            )
+                        ],
+                        [
+                            sg.Combo(
+                                key="OUTPUT",
+                                values=list(set(mido.get_output_names())),
+                                readonly=True,
+                                enable_events=True
+                            )
+                        ]
+                    ]
+                ),
+                sg.Column(
+                    [
+                        [
+                            sg.Text(
+                                "Video Threshold",
+                            )
+                        ],
+                        [
+                            sg.Slider(
+                                orientation="horizontal",
+                                key="THRESHOLD",
+                                range=(1, 100),
+                                default_value=20
+                            )
+                        ]
+                    ]
+                )
+            ],[sg.FileBrowse(
+                    "Browse Image",
+                    key="IMAGE",
+                    file_types=file_types),
+                sg.Text("", key="IMAGE-PATH")]]
+        ),
+        sg.Button("Start", key="START"),
+        xilos
     ]
 ]
 # Create the window
-window = sg.Window("Demo", layout)
+window = sg.Window("Image to MIDI", layout)
 
 port = None
 # Create an event loop
@@ -369,19 +394,33 @@ while True:
                not values["IMAGE"].endswith('.png')):
                 sg.popup_error("Select a valid png Image")
             else:
-                valid = True
+                valid_min_max = True
                 for i in range(4):
                     if values[f"MAX-{i}"] <= values[f"MIN-{i}"]:
-                        valid = False
+                        valid_min_max = False
                         break
-                if not valid:
-                    sg.popup_error("MAX has to be greater than MIN")
+                valid_notes = True
+                for i in range(4):
+                    if(127 <=
+                       values[f"ROOT-{i}"] + 12 * values[f"OCTAVES-{i}"]):
+                        valid_notes = False
+                        break
+                if not valid_min_max:
+                    sg.popup_error(f"MAX has to be greater \
+                        than MIN on instrument {i}")
+                elif not valid_notes:
+                    sg.popup_error(f"The number of octaves from \
+the selected root note exceed the maximum \
+number of midi notes (127). Try reducing \
+the Root note or the number of octaves \
+for instrument {i}")
                 else:
                     try:
                         settings.init(values, graphic_off)
                         xilo_handler = XilophoneHandler(
                             values["IMAGE"],
-                            2,
+                            4,
+                            port
                         )
                         xilo_handler_thread = threading.Thread(
                             target=xilo_handler.xilo_lifecycle, daemon=True

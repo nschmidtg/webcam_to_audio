@@ -20,11 +20,10 @@ LOCRIAN = [0, 1, 3, 5, 6, 8, 10]
 
 
 class XilophoneHandler():
-    def __init__(self, image_path, max_channels):
+    def __init__(self, image_path, max_channels, outport):
         self.image_path = image_path
         self.max_channels = max_channels
-        self.outport = mido.open_output()
-        # settings.init()
+        self.outport = outport
         self.xilo_threads = []
         for i in range(self.max_channels):
             xilo = Xilophone(
@@ -136,7 +135,7 @@ class Xilophone(threading.Thread):
 
         # initialize midi CCs
         self.x_ramp = Ramp(
-            'x',
+            self.outport,
             low=int(settings.params[f"MIN-{self.index}"]),
             high=int(settings.params[f"MAX-{self.index}"]),
             start=0,

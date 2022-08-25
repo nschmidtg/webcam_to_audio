@@ -14,7 +14,7 @@ DIRECTIONS = {
 class Ramp(threading.Thread):
     def __init__(
         self,
-        coord,
+        midi_out_port,
         low=0,
         high=127,
         start=0,
@@ -26,7 +26,7 @@ class Ramp(threading.Thread):
         direction='left to right'
     ):
         threading.Thread.__init__(self)
-        self.coord = coord
+        self.midi_out_port = midi_out_port
         self.low = low
         self.high = high
         self.step = step
@@ -46,36 +46,35 @@ class Ramp(threading.Thread):
         while(settings.keep_playing):
             if self.local_keep_playing:
                 tmp_value = 0
-                if self.coord in 'x':
-                    if self.direction == "left to right":
+                if self.direction == "left to right":
+                    tmp_value = int(
+                        float(
+                            settings.coords[self.inst_num][0] / 1280
+                        ) * 127
+                    )
+                elif self.direction == "right to left":
+                    tmp_value = 127 - int(
+                        float(
+                            settings.coords[self.inst_num][0] / 1280
+                        ) * 127
+                    )
+                elif self.direction == "out to center":
+                    if settings.coords[self.inst_num][0] <= (1280/2):
                         tmp_value = int(
                             float(
-                                settings.coords[self.inst_num][0] / 1280
+                                settings.coords[
+                                    self.inst_num
+                                ][0] / (1280/2)
                             ) * 127
                         )
-                    elif self.direction == "right to left":
+                    else:
                         tmp_value = 127 - int(
                             float(
-                                settings.coords[self.inst_num][0] / 1280
+                                (settings.coords[
+                                    self.inst_num
+                                ][0] - (1280/2)) / (1280/2)
                             ) * 127
                         )
-                    elif self.direction == "out to center":
-                        if settings.coords[self.inst_num][0] <= (1280/2):
-                            tmp_value = int(
-                                float(
-                                    settings.coords[
-                                        self.inst_num
-                                    ][0] / (1280/2)
-                                ) * 127
-                            )
-                        else:
-                            tmp_value = 127 - int(
-                                float(
-                                    (settings.coords[
-                                        self.inst_num
-                                    ][0] - (1280/2)) / (1280/2)
-                                ) * 127
-                            )
 
                 temp_step = float((tmp_value - self.old_val)/self.speed)
                 for i in range(self.speed):
