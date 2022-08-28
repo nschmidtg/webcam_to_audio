@@ -419,6 +419,8 @@ if loaded:
 graphic_off = loaded_toggles if loaded else [True for i in range(4)]
 while True:
     event, values = window.read()
+    if event == sg.WIN_CLOSED:
+        break
     if event == "OUTPUT":
         port = mido.open_output(values["OUTPUT"])
     if "TOGGLE-" in event:
@@ -516,8 +518,5 @@ for example '0,2,4,5,7,9,11' on instrument {i}")
                     settings.keep_playing = False
                     xilo_handler_thread.join()
                     port.panic()
-
-    if event == sg.WIN_CLOSED:
-        break
 
 window.close()
