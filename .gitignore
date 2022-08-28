@@ -3,3 +3,4 @@ image_to_midi.spec
 dist/
 build/
 Lluvia1 Project/
+json_data_*
