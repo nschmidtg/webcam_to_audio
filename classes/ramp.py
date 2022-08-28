@@ -1,7 +1,6 @@
 import threading
 import time
 from . import settings
-import mido
 from mido import Message
 
 DIRECTIONS = {
@@ -36,69 +35,58 @@ class Ramp(threading.Thread):
         self.inst_num = inst_num
         self.count = start
         self.up = True
-        self.port = mido.open_output()
-        self.local_keep_playing = True
         self.curr_val = 0
         self.old_val = 0
         self.direction = direction
 
     def run(self):
         while(settings.keep_playing):
-            if self.local_keep_playing:
-                tmp_value = 0
-                if self.direction == "left to right":
+            tmp_value = 0
+            if self.direction == "left to right":
+                tmp_value = int(
+                    float(
+                        settings.coords[self.inst_num][0] / 1280
+                    ) * 127
+                )
+            elif self.direction == "right to left":
+                tmp_value = 127 - int(
+                    float(
+                        settings.coords[self.inst_num][0] / 1280
+                    ) * 127
+                )
+            elif self.direction == "out to center":
+                if settings.coords[self.inst_num][0] <= (1280/2):
                     tmp_value = int(
                         float(
-                            settings.coords[self.inst_num][0] / 1280
+                            settings.coords[
+                                self.inst_num
+                            ][0] / (1280/2)
                         ) * 127
                     )
-                elif self.direction == "right to left":
+                else:
                     tmp_value = 127 - int(
                         float(
-                            settings.coords[self.inst_num][0] / 1280
+                            (settings.coords[
+                                self.inst_num
+                            ][0] - (1280/2)) / (1280/2)
                         ) * 127
                     )
-                elif self.direction == "out to center":
-                    if settings.coords[self.inst_num][0] <= (1280/2):
-                        tmp_value = int(
-                            float(
-                                settings.coords[
-                                    self.inst_num
-                                ][0] / (1280/2)
-                            ) * 127
-                        )
-                    else:
-                        tmp_value = 127 - int(
-                            float(
-                                (settings.coords[
-                                    self.inst_num
-                                ][0] - (1280/2)) / (1280/2)
-                            ) * 127
-                        )
 
-                temp_step = float((tmp_value - self.old_val)/self.speed)
-                for i in range(self.speed):
-                    self.curr_val = int(self.curr_val + temp_step)
-                    if self.curr_val >= self.high:
-                        self.curr_val = self.high
-                    elif self.curr_val <= self.low:
-                        self.curr_val = self.low
-                    print(self.curr_val)
-                    msg = Message(
-                        'control_change',
-                        channel=self.channel,
-                        control=self.control,
-                        value=self.curr_val
-                    )
-                    self.port.send(msg)
-                    time.sleep(0.05)
-                self.old_val = self.curr_val
-                time.sleep(0.1)
-        self.port.panic()
-        self.port.close()
-
-    def stop_thread(self):
-        self.local_keep_playing = False
-
-    def resume_thread(self):
-        self.local_keep_playing = True
+            temp_step = float((tmp_value - self.old_val)/self.speed)
+            for i in range(self.speed):
+                self.curr_val = int(self.curr_val + temp_step)
+                if self.curr_val >= self.high:
+                    self.curr_val = self.high
+                elif self.curr_val <= self.low:
+                    self.curr_val = self.low
+                print(self.curr_val)
+                msg = Message(
+                    'control_change',
+                    channel=self.channel,
+                    control=self.control,
+                    value=self.curr_val
+                )
+                self.midi_out_port.send(msg)
+                time.sleep(0.05)
+            self.old_val = self.curr_val
+            time.sleep(0.1)

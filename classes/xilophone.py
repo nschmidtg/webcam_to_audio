@@ -9,14 +9,16 @@ from . import settings
 from .ramp import Ramp
 c = threading.Condition()
 
+scales = {
+    "MAJOR": [0, 2, 4, 5, 7, 9, 11],
+    "DORIAN": [0, 2, 3, 5, 7, 9, 10],
+    "PHRYGIAN": [0, 1, 3, 5, 7, 8, 10],
+    "LYDIAN": [0, 2, 4, 6, 7, 9, 11],
+    "MIXOLYDIAN": [0, 2, 4, 5, 7, 9, 10],
+    "MINOR": [0, 2, 3, 5, 7, 8, 10],
+    "LOCRIAN": [0, 1, 3, 5, 6, 8, 10],
+}
 
-MAJOR = [0, 2, 4, 5, 7, 9, 11]
-DORIAN = [0, 2, 3, 5, 7, 9, 10]
-PHRYGIAN = [0, 1, 3, 5, 7, 8, 10]
-LYDIAN = [0, 2, 4, 6, 7, 9, 11]
-MIXOLYDIAN = [0, 2, 4, 5, 7, 9, 10]
-MINOR = [0, 2, 3, 5, 7, 8, 10]
-LOCRIAN = [0, 1, 3, 5, 6, 8, 10]
 
 
 class XilophoneHandler():
@@ -37,7 +39,8 @@ class XilophoneHandler():
                 note_length=int(settings.params[f"DURATION-{i}"]),
                 separation=int(settings.params[f"SEPARATION-{i}"]),
                 uncompressed=settings.uncompressed[i],
-                x_axis_direction=settings.params[f"DIRECTION-{i}"]
+                x_axis_direction=settings.params[f"DIRECTION-{i}"],
+                intervals=settings.params[f"INPUTSCALE-{i}"]
             )
             xilo.start()
             self.xilo_threads.append(xilo)
@@ -61,10 +64,8 @@ class XilophoneHandler():
                         self.xilo_threads[i].resume_thread()
                     current_n_people = final_n_people
         for xilo in self.xilo_threads:
-            xilo.stop_thread()
+            # xilo.stop_thread()
             xilo.join()
-        self.outport.panic()
-        self.outport.close()
 
 
 class Xilophone(threading.Thread):
@@ -80,7 +81,8 @@ class Xilophone(threading.Thread):
         note_length=2000,
         separation=None,  # include it for polyphonic sounds
         uncompressed=False,
-        x_axis_direction='left to right'
+        x_axis_direction='left to right',
+        intervals=None
     ):
         threading.Thread.__init__(self)
         self.index = index
@@ -92,7 +94,10 @@ class Xilophone(threading.Thread):
         self.note_length = note_length
         self.midi_channel = midi_channel
         self.separation = separation
-        selected_scale = eval(scale)
+        if scale in scales.keys():
+            selected_scale = scales[scale]
+        elif scale == "CUSTOM":
+            selected_scale = [int(note) for note in intervals.split(',')]
         self.x_axis_direction = x_axis_direction
         self.notes = []
         for i in range(n_scales):
