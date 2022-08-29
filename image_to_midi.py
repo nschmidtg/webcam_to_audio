@@ -18,6 +18,10 @@ toggle_btn_on = b'iVBORw0KGgoAAAANSUhEUgAAAGQAAAAoCAYAAAAIeF9DAAARfUlEQVRoge1bCZ
 file_types = [("PNG (*.png)", "*.png")]
 
 
+x_screen_size = 0
+y_screen_size = 0
+
+
 def video_tracker(midi_channels):
     classNames = {15: 'person'}
 
@@ -158,8 +162,7 @@ def video_tracker(midi_channels):
                         ((yRightTop + yLeftBottom) / 2)
                     )
                     n_people += 1
-                    # len(frame) = 720
-                    # len(frame[0]) = 1280
+                    
 
         # Set the number of people in the frame
         settings.people_counter = n_people
@@ -205,6 +208,12 @@ if(os.path.exists("json_data_values.json") and
         loaded_toggles = json.load(json_file)
     loaded = True
 
+
+test_video = cv2.VideoCapture(0)
+ok, frame = test_video.read()
+y_screen_size = len(frame)
+x_screen_size = len(frame[0])
+test_video.release()
 xilos = []
 for index in range(0, 4):
     row1 = [
@@ -498,7 +507,12 @@ for instrument {i}")
 form [digit1],[digit2],[digit3] \
 for example '0,2,4,5,7,9,11' on instrument {i}")
                 else:
-                    settings.init(values, graphic_off)
+                    settings.init(
+                        values,
+                        graphic_off,
+                        x_screen_size,
+                        y_screen_size
+                    )
                     xilo_handler = XilophoneHandler(
                         values["IMAGE"],
                         4,

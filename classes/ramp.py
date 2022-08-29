@@ -45,22 +45,22 @@ class Ramp(threading.Thread):
             if self.direction == "left to right":
                 tmp_value = int(
                     float(
-                        settings.coords[self.inst_num][0] / 1280
+                        settings.coords[self.inst_num][0] / settings.x_screen_size
                     ) * 127
                 )
             elif self.direction == "right to left":
                 tmp_value = 127 - int(
                     float(
-                        settings.coords[self.inst_num][0] / 1280
+                        settings.coords[self.inst_num][0] / settings.x_screen_size
                     ) * 127
                 )
             elif self.direction == "out to center":
-                if settings.coords[self.inst_num][0] <= (1280/2):
+                if settings.coords[self.inst_num][0] <= (settings.x_screen_size/2):
                     tmp_value = int(
                         float(
                             settings.coords[
                                 self.inst_num
-                            ][0] / (1280/2)
+                            ][0] / (settings.x_screen_size/2)
                         ) * 127
                     )
                 else:
@@ -68,7 +68,7 @@ class Ramp(threading.Thread):
                         float(
                             (settings.coords[
                                 self.inst_num
-                            ][0] - (1280/2)) / (1280/2)
+                            ][0] - (settings.x_screen_size/2)) / (settings.x_screen_size/2)
                         ) * 127
                     )
 
