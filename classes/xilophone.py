@@ -1,6 +1,5 @@
 from .image_analyzer import ImageAnalizer
 from PIL import Image
-import mido
 from mido import Message
 import threading
 import numpy as np
@@ -18,7 +17,6 @@ scales = {
     "MINOR": [0, 2, 3, 5, 7, 8, 10],
     "LOCRIAN": [0, 1, 3, 5, 6, 8, 10],
 }
-
 
 
 class XilophoneHandler():
@@ -47,20 +45,20 @@ class XilophoneHandler():
 
     def xilo_lifecycle(self):
         current_n_people = 0
-        while(settings.keep_playing):
-            initial_n_people = settings.people_counter
+        while settings.keep_playing:
+            initial_n_people = min(self.max_channels, settings.people_counter)
 
             # we only change the current n of xilos if the n of people changed
             # for more than 1 secs
             time.sleep(1)
-            final_n_people = settings.people_counter
+            final_n_people = min(self.max_channels, settings.people_counter)
 
             if initial_n_people == final_n_people:
                 if final_n_people != current_n_people:
                     # silence all xilos
-                    for xilo in self.xilo_threads:
+                    for xilo in self.xilo_threads[final_n_people:]:
                         xilo.stop_thread()
-                    for i in range(min(self.max_channels, final_n_people)):
+                    for i in range(final_n_people):
                         self.xilo_threads[i].resume_thread()
                     current_n_people = final_n_people
         for xilo in self.xilo_threads:
@@ -177,7 +175,7 @@ class Xilophone(threading.Thread):
         play_note = None
         # read centroid
         self.x_ramp.start()
-        while(settings.keep_playing):
+        while settings.keep_playing:
             if self.local_keep_playing:
                 note_vel = np.random.choice(
                     self.notes_matrix,

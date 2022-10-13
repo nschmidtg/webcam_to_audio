@@ -49,152 +49,156 @@ def video_tracker(midi_channels):
             "model/MobileNetSSD_deploy.caffemodel"
         )
 
+    read_every = 1000000
+    current_read = 0
     while True:
         # Read a new frame
-        ok, frame = video.read()
-        if not ok:
-            break
+        if current_read % read_every == 0:
+            print(current_read)
+            ok, frame = video.read()
+            if not ok:
+                break
 
-        # Start timer
-        timer = cv2.getTickCount()
+            # Start timer
+            # timer = cv2.getTickCount()
 
-        # resize frame for prediction
-        frame_resized = cv2.resize(frame, (300, 300))
+            # resize frame for prediction
+            frame_resized = cv2.resize(frame, (300, 300))
 
-        # MobileNet requires fixed dimensions for input image(s)
-        # so we have to ensure that it is resized to 300x300 pixels.
-        # set a scale factor to image because network the objects
-        # has differents size.
-        # We perform a mean subtraction (127.5, 127.5, 127.5)
-        # to normalize the input;
-        # after executing this command our "blob" now has the shape:
-        # (1, 3, 300, 300)
-        blob = cv2.dnn.blobFromImage(
-            frame_resized,
-            0.007843,
-            (300, 300),
-            (127.5, 127.5, 127.5),
-            False
-        )
-        # Set to network the input blob
-        net.setInput(blob)
-        # Prediction of network
-        detections = net.forward()
+            # MobileNet requires fixed dimensions for input image(s)
+            # so we have to ensure that it is resized to 300x300 pixels.
+            # set a scale factor to image because network the objects
+            # has differents size.
+            # We perform a mean subtraction (127.5, 127.5, 127.5)
+            # to normalize the input;
+            # after executing this command our "blob" now has the shape:
+            # (1, 3, 300, 300)
+            blob = cv2.dnn.blobFromImage(
+                frame_resized,
+                0.007843,
+                (300, 300),
+                (127.5, 127.5, 127.5),
+                False
+            )
+            # Set to network the input blob
+            net.setInput(blob)
+            # Prediction of network
+            detections = net.forward()
 
-        # Size of frame resize (300x300)
-        cols = frame_resized.shape[1]
-        rows = frame_resized.shape[0]
-        # Calculate Frames per second (FPS)
-        fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer)
+            # Size of frame resize (300x300)
+            cols = frame_resized.shape[1]
+            rows = frame_resized.shape[0]
+            # Calculate Frames per second (FPS)
+            # fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer)
 
-        # For get the class and location of object detected,
-        # There is a fix index for class, location and confidence
-        # value in @detections array .
+            # For get the class and location of object detected,
+            # There is a fix index for class, location and confidence
+            # value in @detections array .
 
-        n_people = 0
-        for i in range(detections.shape[2]):
-            confidence = detections[0, 0, i, 2]  # C onfidence of prediction
-            if confidence > float(settings.params["THRESHOLD"] / 100):
-                class_id = int(detections[0, 0, i, 1])  # Class label
-                # Draw label and confidence of prediction in frame resized
-                if class_id in classNames:
+            n_people = 0
+            for i in range(detections.shape[2]):
+                confidence = detections[0, 0, i, 2]  # Confidence of prediction
+                if confidence > float(settings.params["THRESHOLD"] / 100):
+                    class_id = int(detections[0, 0, i, 1])  # Class label
+                    # Draw label and confidence of prediction in frame resized
+                    if class_id in classNames:
 
-                    # Object location
-                    xLeftBottom = int(detections[0, 0, i, 3] * cols)
-                    yLeftBottom = int(detections[0, 0, i, 4] * rows)
-                    xRightTop = int(detections[0, 0, i, 5] * cols)
-                    yRightTop = int(detections[0, 0, i, 6] * rows)
+                        # Object location
+                        xLeftBottom = int(detections[0, 0, i, 3] * cols)
+                        yLeftBottom = int(detections[0, 0, i, 4] * rows)
+                        xRightTop = int(detections[0, 0, i, 5] * cols)
+                        yRightTop = int(detections[0, 0, i, 6] * rows)
 
-                    # Factor for scale to original size of frame
-                    heightFactor = frame.shape[0]/300.0
-                    widthFactor = frame.shape[1]/300.0
-                    # Scale object detection to frame
-                    xLeftBottom = int(widthFactor * xLeftBottom)
-                    yLeftBottom = int(heightFactor * yLeftBottom)
-                    xRightTop = int(widthFactor * xRightTop)
-                    yRightTop = int(heightFactor * yRightTop)
-                    # Draw location of object
-                    cv2.rectangle(
-                        frame,
-                        (xLeftBottom, yLeftBottom),
-                        (xRightTop, yRightTop),
-                        (0, 255, 0)
-                    )
+                        # Factor for scale to original size of frame
+                        heightFactor = frame.shape[0]/300.0
+                        widthFactor = frame.shape[1]/300.0
+                        # Scale object detection to frame
+                        xLeftBottom = int(widthFactor * xLeftBottom)
+                        yLeftBottom = int(heightFactor * yLeftBottom)
+                        xRightTop = int(widthFactor * xRightTop)
+                        yRightTop = int(heightFactor * yRightTop)
+                        # Draw location of object
+                        cv2.rectangle(
+                            frame,
+                            (xLeftBottom, yLeftBottom),
+                            (xRightTop, yRightTop),
+                            (0, 255, 0)
+                        )
 
-                    label = classNames[class_id] + ": " + str(confidence)
-                    labelSize, baseLine = cv2.getTextSize(
-                        label,
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5,
-                        1
-                    )
+                        label = classNames[class_id] + ": " + str(confidence)
+                        labelSize, baseLine = cv2.getTextSize(
+                            label,
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.5,
+                            1
+                        )
 
-                    yLeftBottom = max(yLeftBottom, labelSize[1])
-                    cv2.rectangle(
-                        frame,
-                        (xLeftBottom, yLeftBottom - labelSize[1]),
-                        (xLeftBottom + labelSize[0], yLeftBottom + baseLine),
-                        (255, 255, 255),
-                        cv2.FILLED
-                    )
-                    cv2.putText(
-                        frame,
-                        label,
-                        (xLeftBottom, yLeftBottom),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5,
-                        (0, 0, 0)
-                    )
-                    cv2.putText(
-                        frame,
-                        "C",
-                        (
-                            int((xRightTop + xLeftBottom) / 2),
-                            int((yRightTop + yLeftBottom) / 2)
-                        ),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5,
-                        (0, 0, 255)
-                    )
-                    coord = min(midi_channels - 1, n_people)
-                    settings.coords[max(coord, 0)] = (
-                        ((xRightTop + xLeftBottom) / 2),
-                        ((yRightTop + yLeftBottom) / 2)
-                    )
-                    n_people += 1
-                    
+                        yLeftBottom = max(yLeftBottom, labelSize[1])
+                        cv2.rectangle(
+                            frame,
+                            (xLeftBottom, yLeftBottom - labelSize[1]),
+                            (xLeftBottom + labelSize[0], yLeftBottom + baseLine), # noqa
+                            (255, 255, 255),
+                            cv2.FILLED
+                        )
+                        cv2.putText(
+                            frame,
+                            label,
+                            (xLeftBottom, yLeftBottom),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.5,
+                            (0, 0, 0)
+                        )
+                        cv2.putText(
+                            frame,
+                            "C",
+                            (
+                                int((xRightTop + xLeftBottom) / 2),
+                                int((yRightTop + yLeftBottom) / 2)
+                            ),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.5,
+                            (0, 0, 255)
+                        )
+                        coord = min(midi_channels - 1, n_people)
+                        settings.coords[max(coord, 0)] = (
+                            ((xRightTop + xLeftBottom) / 2),
+                            ((yRightTop + yLeftBottom) / 2)
+                        )
+                        n_people += 1
 
-        # Set the number of people in the frame
-        settings.people_counter = n_people
-        cv2.putText(
-            frame,
-            "Press ESC to exit",
-            (100, 20),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.75,
-            (50, 170, 50),
-            2)
-        cv2.putText(
-            frame,
-            "N of People : " + str(n_people),
-            (100, 80),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.75,
-            (50, 170, 50),
-            2)
-        # Display FPS on frame
-        cv2.putText(
-            frame,
-            "FPS : " + str(int(fps)),
-            (100, 50),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.75,
-            (50, 170, 50),
-            2)
-        cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
-        cv2.imshow("frame", frame)
-        if cv2.waitKey(1) >= 0:  # Break with ESC
-            break
+            # Set the number of people in the frame
+            settings.people_counter = n_people
+            cv2.putText(
+                frame,
+                "Press ESC to exit",
+                (100, 20),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.75,
+                (50, 170, 50),
+                2)
+            cv2.putText(
+                frame,
+                "N of People : " + str(n_people),
+                (100, 80),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.75,
+                (50, 170, 50),
+                2)
+            # Display FPS on frame
+            # cv2.putText(
+            #     frame,
+            #     "FPS : " + str(int(fps)),
+            #     (100, 50),
+            #     cv2.FONT_HERSHEY_SIMPLEX,
+            #     0.75,
+            #     (50, 170, 50),
+            #     2)
+            cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
+            cv2.imshow("frame", frame)
+            if cv2.waitKey(1) >= 0:  # Break with ESC
+                break
+        current_read += 1
     video.release()
     cv2.destroyWindow("frame")
 
@@ -449,7 +453,7 @@ while True:
         window.refresh()
     if "TRAIN" in event:
         index = str(event).split('-')[1]
-        if(port is None):
+        if port is None:
             sg.popup_error("Select MIDI Output Port")
         else:
             count = 5

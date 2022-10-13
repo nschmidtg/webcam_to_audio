@@ -79,7 +79,6 @@ class Ramp(threading.Thread):
                     self.curr_val = self.high
                 elif self.curr_val <= self.low:
                     self.curr_val = self.low
-                print(self.curr_val)
                 msg = Message(
                     'control_change',
                     channel=self.channel,
