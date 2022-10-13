@@ -5,7 +5,7 @@ import mido.backends.rtmidi
 from mido import Message
 from classes import settings
 import threading
-from classes.xilophone import XilophoneHandler
+from classes.xilophone_handler import XilophoneHandler
 import cv2
 import os
 import sys
@@ -22,11 +22,15 @@ x_screen_size = 0
 y_screen_size = 0
 
 
-def video_tracker(midi_channels):
+def video_tracker(midi_channels, demo, camera):
     classNames = {15: 'person'}
 
     # Open video file or capture device.
-    video = cv2.VideoCapture(0)
+    video = None
+    if demo:
+        video = cv2.VideoCapture('images/video.mp4')
+    else:
+        video = cv2.VideoCapture(camera)
 
     # Load the Caffe model
     net = None
@@ -54,7 +58,7 @@ def video_tracker(midi_channels):
     while True:
         # Read a new frame
         if current_read % read_every == 0:
-            print(current_read)
+            # print(current_read)
             ok, frame = video.read()
             if not ok:
                 break
@@ -212,12 +216,6 @@ if(os.path.exists("json_data_values.json") and
         loaded_toggles = json.load(json_file)
     loaded = True
 
-
-test_video = cv2.VideoCapture(0)
-ok, frame = test_video.read()
-y_screen_size = len(frame)
-x_screen_size = len(frame[0])
-test_video.release()
 xilos = []
 for index in range(0, 4):
     row1 = [
@@ -406,6 +404,28 @@ layout = [
                                     "THRESHOLD"
                                 ] if loaded else 20
                             )
+                        ],
+                        [
+                            sg.Combo(
+                                key="DEMO",
+                                values=[
+                                    "Normal",
+                                    "Demo (4 people)"
+                                ],
+                                readonly=True,
+                                default_value="Demo (4 people)"
+                            )
+                        ],
+                        [
+                            sg.Combo(
+                                key="CAMERA",
+                                values=[
+                                    "0",
+                                    "1"
+                                ],
+                                readonly=True,
+                                default_value="0"
+                            )
                         ]
                     ]
                 )
@@ -511,6 +531,15 @@ for instrument {i}")
 form [digit1],[digit2],[digit3] \
 for example '0,2,4,5,7,9,11' on instrument {i}")
                 else:
+                    test_video = None
+                    if values["DEMO"] == "Demo (4 people)":
+                        test_video = cv2.VideoCapture('images/video.mp4')
+                    else:
+                        test_video = cv2.VideoCapture(int(values["CAMERA"]))
+                    ok, frame = test_video.read()
+                    y_screen_size = len(frame)
+                    x_screen_size = len(frame[0])
+                    test_video.release()
                     settings.init(
                         values,
                         graphic_off,
@@ -532,7 +561,7 @@ for example '0,2,4,5,7,9,11' on instrument {i}")
                         json.dump(graphic_off, outfile)
                     xilo_handler_thread.start()
                     # start video
-                    video_tracker(4)
+                    video_tracker(4, values["DEMO"] == "Demo (4 people)", int(values["CAMERA"]))
                     settings.keep_playing = False
                     xilo_handler_thread.join()
                     port.panic()
