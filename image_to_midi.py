@@ -28,7 +28,15 @@ def video_tracker(midi_channels, demo, camera):
     # Open video file or capture device.
     video = None
     if demo:
-        video = cv2.VideoCapture('images/video.mp4')
+        video_demo = None
+        if getattr(sys, 'frozen', False):
+            video_demo = os.path.join(
+                sys._MEIPASS,
+                "images/video.mp4"
+            )
+        else:
+            video_demo = "images/video.mp4"
+        video = cv2.VideoCapture(video_demo)
     else:
         video = cv2.VideoCapture(camera)
 
@@ -533,7 +541,15 @@ for example '0,2,4,5,7,9,11' on instrument {i}")
                 else:
                     test_video = None
                     if values["DEMO"] == "Demo (4 people)":
-                        test_video = cv2.VideoCapture('images/video.mp4')
+                        video_demo = None
+                        if getattr(sys, 'frozen', False):
+                            video_demo = os.path.join(
+                                sys._MEIPASS,
+                                "images/video.mp4"
+                            )
+                        else:
+                            video_demo = "images/video.mp4"
+                        test_video = cv2.VideoCapture(video_demo)
                     else:
                         test_video = cv2.VideoCapture(int(values["CAMERA"]))
                     ok, frame = test_video.read()
