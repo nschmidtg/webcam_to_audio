@@ -19,53 +19,6 @@ scales = {
 }
 
 
-class XilophoneHandler():
-    def __init__(self, image_path, max_channels, outport):
-        self.image_path = image_path
-        self.max_channels = max_channels
-        self.outport = outport
-        self.xilo_threads = []
-        for i in range(self.max_channels):
-            xilo = Xilophone(
-                i,
-                int(settings.params[f"CHANNEL-{i}"]) - 1,
-                settings.params["IMAGE"],
-                settings.params[f"SCALE-{i}"],
-                int(settings.params[f"ROOT-{i}"]),
-                int(settings.params[f"OCTAVES-{i}"]),
-                self.outport,
-                note_length=int(settings.params[f"DURATION-{i}"]),
-                separation=int(settings.params[f"SEPARATION-{i}"]),
-                uncompressed=settings.uncompressed[i],
-                x_axis_direction=settings.params[f"DIRECTION-{i}"],
-                intervals=settings.params[f"INPUTSCALE-{i}"]
-            )
-            xilo.start()
-            self.xilo_threads.append(xilo)
-
-    def xilo_lifecycle(self):
-        current_n_people = 0
-        while settings.keep_playing:
-            initial_n_people = min(self.max_channels, settings.people_counter)
-
-            # we only change the current n of xilos if the n of people changed
-            # for more than 1 secs
-            time.sleep(1)
-            final_n_people = min(self.max_channels, settings.people_counter)
-
-            if initial_n_people == final_n_people:
-                if final_n_people != current_n_people:
-                    # silence all xilos
-                    for xilo in self.xilo_threads[final_n_people:]:
-                        xilo.stop_thread()
-                    for i in range(final_n_people):
-                        self.xilo_threads[i].resume_thread()
-                    current_n_people = final_n_people
-        for xilo in self.xilo_threads:
-            # xilo.stop_thread()
-            xilo.join()
-
-
 class Xilophone(threading.Thread):
     def __init__(
         self,
@@ -83,8 +36,10 @@ class Xilophone(threading.Thread):
         intervals=None
     ):
         threading.Thread.__init__(self)
+        self.pause_cond = threading.Condition(threading.Lock())
+        self.pause_cond.acquire()
         self.index = index
-        self.local_keep_playing = False
+        self.paused = True
         self.poly = None
         if separation:
             self.poly = True
@@ -150,12 +105,20 @@ class Xilophone(threading.Thread):
             direction=self.x_axis_direction)
 
     def stop_thread(self):
-        self.local_keep_playing = False
+        if not self.paused:
+            self.paused = True
+            self.pause_cond.acquire()
 
     def resume_thread(self):
-        self.local_keep_playing = True
+        if self.paused:
+            self.paused = False
+            # Notify so thread will wake after lock released
+            self.pause_cond.notify()
+            # Now release the lock
+            self.pause_cond.release()
 
     def send_note(self, note, duration, vel):
+        # print("midi", self.midi_channel)
         msg = Message(
             'note_on',
             note=note,
@@ -171,12 +134,29 @@ class Xilophone(threading.Thread):
         )
         self.outport.send(msg)
 
+    def join(self):
+        self.x_ramp.join()
+        self.resume_thread()
+        super().join()
+
     def run(self):
-        play_note = None
         # read centroid
         self.x_ramp.start()
         while settings.keep_playing:
-            if self.local_keep_playing:
+            with self.pause_cond:
+                while self.paused:
+                    # print("paused!")
+                    for i in range(127):
+                        msg = Message(
+                            'note_off',
+                            note=i,
+                            channel=self.midi_channel
+                        )
+                        self.outport.send(msg)
+                        self.x_ramp.stop_thread()
+                    self.pause_cond.wait()
+                # print("alive!", self.midi_channel)
+                self.x_ramp.resume_thread()
                 note_vel = np.random.choice(
                     self.notes_matrix,
                     p=self.norm_probs
@@ -202,15 +182,3 @@ class Xilophone(threading.Thread):
                     ))
                 time.sleep(time_separation/1000)
                 self.current_time += time_separation
-            else:
-                for i in range(127):
-                    msg = Message(
-                        'note_off',
-                        note=i,
-                        channel=self.midi_channel
-                    )
-                    self.outport.send(msg)
-                time.sleep(0.5)
-        if play_note:
-            play_note.join()
-        self.x_ramp.join()

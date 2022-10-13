@@ -38,9 +38,34 @@ class Ramp(threading.Thread):
         self.curr_val = 0
         self.old_val = 0
         self.direction = direction
+        self.pause_cond = threading.Condition(threading.Lock())
+        self.pause_cond.acquire()
+        self.paused = True
+
+    def join(self):
+        self.resume_thread()
+        super().join()
+
+    def stop_thread(self):
+        if not self.paused:
+            self.paused = True
+            self.pause_cond.acquire()
+
+    def resume_thread(self):
+        if self.paused:
+            self.paused = False
+            # Notify so thread will wake after lock released
+            self.pause_cond.notify()
+            # Now release the lock
+            self.pause_cond.release()
 
     def run(self):
-        while(settings.keep_playing):
+        while settings.keep_playing:
+            with self.pause_cond:
+                while self.paused:
+                    # print("ramp paused!", self.channel)
+                    self.pause_cond.wait()
+            # print("ramp sending", self.channel)
             tmp_value = 0
             if self.direction == "left to right":
                 tmp_value = int(
