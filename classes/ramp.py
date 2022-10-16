@@ -71,32 +71,28 @@ class Ramp(threading.Thread):
                 tmp_value = int(
                     float(
                         settings.coords[self.inst_num][0] / settings.x_screen_size
-                    ) * 127
+                    ) * (self.high - self.low) + self.low
                 )
             elif self.direction == "right to left":
-                tmp_value = 127 - int(
+                tmp_value = int(
                     float(
-                        settings.coords[self.inst_num][0] / settings.x_screen_size
-                    ) * 127
+                        (settings.x_screen_size - settings.coords[self.inst_num][0]) / settings.x_screen_size
+                    ) * (self.high - self.low) + self.low
                 )
             elif self.direction == "out to center":
                 if settings.coords[self.inst_num][0] <= (settings.x_screen_size/2):
                     tmp_value = int(
                         float(
-                            settings.coords[
-                                self.inst_num
-                            ][0] / (settings.x_screen_size/2)
-                        ) * 127
+                            settings.coords[self.inst_num][0] / (settings.x_screen_size/2)
+                        ) * (self.high - self.low) + self.low
                     )
                 else:
-                    tmp_value = 127 - int(
+                    tmp_value = self.high - int(
                         float(
-                            (settings.coords[
-                                self.inst_num
-                            ][0] - (settings.x_screen_size/2)) / (settings.x_screen_size/2)
-                        ) * 127
+                            (settings.coords[self.inst_num][0] - (settings.x_screen_size/2)) / (settings.x_screen_size/2)
+                        ) * (self.high - self.low)
                     )
-
+            print(tmp_value)
             temp_step = float((tmp_value - self.old_val)/self.speed)
             for i in range(self.speed):
                 self.curr_val = int(self.curr_val + temp_step)
