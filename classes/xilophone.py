@@ -6,6 +6,7 @@ import numpy as np
 import time
 from . import settings
 from .ramp import Ramp
+import math
 c = threading.Condition()
 
 scales = {
@@ -117,12 +118,35 @@ class Xilophone(threading.Thread):
             # Now release the lock
             self.pause_cond.release()
 
+    def get_sum_distances(self, xilo_index):
+        current = settings.coords[xilo_index]
+        total = 0
+        i = 0
+        while i < settings.people_counter:
+            total += self.calculate_distance(settings.coords[i], current)
+            i += 1
+        
+        return total
+            
+    def compute_velocity_from_entropy(self):
+        max_value = 20
+        if settings.people_counter > 1:
+            max_value = self.calculate_distance((0, 0), (settings.x_screen_size, settings.y_screen_size)) * (settings.people_counter - 1)
+        velocity = -(127/max_value) * self.get_sum_distances(self.index) + 127
+        print(self.index, ":", velocity)
+        return min(int(velocity), 127)
+
+    
+    def calculate_distance(self, A, B):
+        return math.sqrt(pow((A[0] - B[0]), 2) + pow((A[1] - B[1]), 2))
+
+
     def send_note(self, note, duration, vel):
         # print("midi", self.midi_channel)
         msg = Message(
             'note_on',
             note=note,
-            velocity=vel,
+            velocity=self.compute_velocity_from_entropy(),
             channel=self.midi_channel
         )
         self.outport.send(msg)

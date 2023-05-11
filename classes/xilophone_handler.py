@@ -48,3 +48,19 @@ class XilophoneHandler():
         for xilo in self.xilo_threads:
             # xilo.stop_thread()
             xilo.join()
+
+    def get_sum_distances(self, xilo_index):
+        current = settings.coords[xilo_index]
+        total = 0
+        while i < len(settings.coords):
+            total += self.calculate_distance(settings.coords[i], current)
+        
+        return total
+            
+    def compute_velocity_from_entropy(self, sum_distances):
+        max_value = self.calculate_distance((0, 0), (settings.x_screen_size, settings.y_screen_size)) * (len(settings.coords) - 1)
+        return -127/max_value * sum_distances + 127
+
+    
+    def calculate_distance(self, A, B):
+        return math.sqrt(pow((A[0] - B[0]), 2) + pow((A[1] - B[1]), 2))

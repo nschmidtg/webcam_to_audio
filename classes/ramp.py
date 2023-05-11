@@ -92,7 +92,7 @@ class Ramp(threading.Thread):
                             (settings.coords[self.inst_num][0] - (settings.x_screen_size/2)) / (settings.x_screen_size/2)
                         ) * (self.high - self.low)
                     )
-            print(tmp_value)
+            # print(tmp_value)
             temp_step = float((tmp_value - self.old_val)/self.speed)
             for i in range(self.speed):
                 self.curr_val = int(self.curr_val + temp_step)
