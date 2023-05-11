@@ -114,6 +114,8 @@ def video_tracker(midi_channels, demo, camera):
 
             n_people = 0
             for i in range(detections.shape[2]):
+                if i > 3:
+                    break
                 confidence = detections[0, 0, i, 2]  # Confidence of prediction
                 if confidence > float(settings.params["THRESHOLD"] / 100):
                     class_id = int(detections[0, 0, i, 1])  # Class label
@@ -185,7 +187,7 @@ def video_tracker(midi_channels, demo, camera):
                         n_people += 1
 
             # Set the number of people in the frame
-            settings.people_counter = n_people
+            settings.people_counter = min(n_people, 4)
             cv2.putText(
                 frame,
                 "Press ESC to exit",
@@ -308,7 +310,7 @@ for index in range(0, 4):
         sg.Text("Compressed"),
         sg.Button(
             "",
-            image_data=toggle_btn_on if(loaded and
+            image_data=toggle_btn_on if (loaded and
                                         not loaded_toggles[
                                             index
                                         ]) else toggle_btn_off,
