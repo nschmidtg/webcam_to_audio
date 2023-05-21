@@ -132,14 +132,24 @@ class Xilophone(threading.Thread):
         max_value = 20
         if settings.people_counter > 1:
             max_value = self.calculate_distance((0, 0), (settings.x_screen_size, settings.y_screen_size)) * (settings.people_counter - 1)
-        velocity = -(127/max_value) * self.get_sum_distances(self.index) + 127
-        print(self.index, ":", velocity)
+            velocity = 127/(math.pow(math.e, (self.get_sum_distances(self.index) * 2 / max_value)))
+        else:
+            velocity = 64
+        print(self.index, "velocity:", velocity)
         return min(int(velocity), 127)
-
     
+    def compute_separation_from_entropy(self):
+        max_value = 20
+        if settings.people_counter > 1:
+            max_value = self.calculate_distance((0, 0), (settings.x_screen_size, settings.y_screen_size)) * (settings.people_counter - 1)
+            separation = math.pow((self.get_sum_distances(self.index) / max_value), 2)*127
+        else:
+            separation = 64
+        print(self.index, " separation:", separation)
+        return min(int(separation), 127)
+
     def calculate_distance(self, A, B):
         return math.sqrt(pow((A[0] - B[0]), 2) + pow((A[1] - B[1]), 2))
-
 
     def send_note(self, note, duration, vel):
         # print("midi", self.midi_channel)
@@ -200,9 +210,12 @@ class Xilophone(threading.Thread):
                 )
                 play_note.start()
                 if self.poly:
+                    entropy_based_separation = max(1, int(self.separation*(((self.compute_separation_from_entropy()+1)/127))))
                     time_separation = max(0, np.random.normal(
-                        loc=int(self.separation),
-                        scale=int(self.separation/2)
+                        # loc=int(self.separation),
+                        # scale=int(self.separation/2)
+                        loc=entropy_based_separation,
+                        scale=entropy_based_separation/2
                     ))
                 time.sleep(time_separation/1000)
                 self.current_time += time_separation
